@@ -62,3 +62,8 @@ backend/.env.*
 
 # Backend dependencies
 backend/node_modules/
+
+
+backend/uploads/
+backend/android/app/debug.keystore
+*.sql
