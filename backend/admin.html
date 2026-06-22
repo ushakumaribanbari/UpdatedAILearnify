@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Learnify Admin Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: white;
+}
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.section {
+  margin-top: 30px;
+}
+
+#stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 20px;
+  transition: 0.3s;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.upload-box {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  padding: 20px;
+  border-radius: 16px;
+}
+
+input {
+  padding: 12px;
+  margin-top: 12px;
+  width: 100%;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+button {
+  padding: 12px;
+  width: 100%;
+  margin-top: 15px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  background: linear-gradient(45deg, #6366f1, #8b5cf6);
+  color: white;
+  transition: 0.3s;
+}
+
+button:hover {
+  transform: scale(1.03);
+}
+
+table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+td, th {
+  padding: 12px;
+  text-align: center;
+}
+
+tr:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+#topics p {
+  background: rgba(255,255,255,0.05);
+  padding: 10px;
+  border-radius: 8px;
+  margin: 5px 0;
+}
+
+canvas {
+  width: 100% !important;
+  max-height: 300px;
+}
+
+.success {
+  color: #4ade80;
+}
+
+.error {
+  color: #f87171;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚀 AI Learnify Admin Dashboard</h1>
+
+<!-- STATS -->
+<div id="stats" class="section"></div>
+
+<!-- UPLOAD SECTION -->
+<div class="upload-box section">
+
+  <h2>📤 Upload Quiz DOCX</h2>
+
+  <input
+    type="text"
+    id="subjectName"
+    placeholder="Enter Subject Name (Example: Big Data)"
+  />
+
+  <input
+    type="text"
+    id="bundleKey"
+    placeholder="Enter bundle_key (Example: big-data)"
+  />
+
+  <input
+    type="file"
+    id="fileInput"
+    accept=".docx"
+  />
+
+  <button onclick="uploadFile()">
+    Upload Quiz
+  </button>
+
+  <p id="uploadStatus"></p>
+
+</div>
+
+<!-- GRID -->
+<div class="grid section">
+
+  <!-- GRAPH -->
+  <div class="card full">
+    <h2>📈 Daily Active Users</h2>
+    <canvas id="usersChart"></canvas>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="card">
+    <h2>🏆 Leaderboard</h2>
+    <div id="leaderboard"></div>
+  </div>
+
+  <!-- WEAK TOPICS -->
+  <div class="card">
+    <h2>📚 Weak Topics</h2>
+    <div id="topics"></div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+
+const BASE = "https://ailearnifyapp-tbrt.onrender.com";/* ============================
+   QUIZ UPLOAD
+============================ */
+
+async function uploadFile(){
+
+  const file = document.getElementById("fileInput").files[0];
+
+  const bundleKey = document
+    .getElementById("bundleKey")
+    .value
+    .trim();
+
+  const subjectName = document
+    .getElementById("subjectName")
+    .value
+    .trim();
+
+  const status = document.getElementById("uploadStatus");
+
+  if(!file){
+    status.innerHTML = "❌ Please select DOCX file";
+    status.className = "error";
+    return;
+  }
+
+  if(!subjectName){
+    status.innerHTML = "❌ Subject name required";
+    status.className = "error";
+    return;
+  }
+
+  if(!bundleKey){
+    status.innerHTML = "❌ bundle_key required";
+    status.className = "error";
+    return;
+  }
+
+  status.innerHTML = "Uploading... ⏳";
+  status.className = "";
+
+  const formData = new FormData();
+
+  formData.append("file", file);
+  formData.append("bundleKey", bundleKey);
+  formData.append("subjectName", subjectName);
+
+  try {
+
+    const res = await fetch(BASE + "/admin/upload-quiz", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+
+    status.innerHTML = data.message || "Upload Complete ✅";
+    status.className = "success";
+
+  } catch (e) {
+
+    console.log(e);
+
+    status.innerHTML = "Upload failed ❌";
+    status.className = "error";
+
+  }
+}
+
+/* ============================
+   LOAD STATS
+============================ */
+
+async function loadStats(){
+
+  try {
+
+    const res = await fetch(BASE + "/admin/stats");
+    const d = await res.json();
+
+    document.getElementById("stats").innerHTML = `
+      <div class="card">
+        Users<br>
+        <b>${d.total_users || 0}</b>
+      </div>
+
+      <div class="card">
+        Attempts<br>
+        <b>${d.total_attempts || 0}</b>
+      </div>
+
+      <div class="card">
+        Avg Score<br>
+        <b>${d.avg_score || 0}</b>
+      </div>
+    `;
+
+  } catch(e){
+    console.log(e);
+  }
+}
+
+loadStats();
+
+/* ============================
+   LOAD GRAPH
+============================ */
+
+async function loadGraph(){
+
+  try {
+
+    const res = await fetch(BASE + "/admin/daily-users");
+    const data = await res.json();
+
+    const labels = data.map(x => x.day);
+    const values = data.map(x => x.users);
+
+    new Chart(document.getElementById("usersChart"), {
+
+      type: "line",
+
+      data: {
+        labels,
+        datasets: [{
+          label: "Active Users",
+          data: values,
+          borderColor: "#6366f1",
+          tension: 0.4
+        }]
+      }
+
+    });
+
+  } catch(e){
+    console.log(e);
+  }
+}
+
+loadGraph();
+
+/* ============================
+   WEAK TOPICS
+============================ */
+
+async function loadTopics(){
+
+  try{
+
+    const res = await fetch(BASE + "/admin/topics");
+
+    const data = await res.json();
+
+    let html = "";
+
+    let currentSubject = "";
+
+    data.forEach(topic=>{
+
+      if(currentSubject !== topic.subject_name){
+
+        currentSubject = topic.subject_name;
+
+        html += `
+          <h3 style="
+            margin-top:20px;
+            color:#4ade80;
+          ">
+            ${currentSubject}
+          </h3>
+        `;
+      }
+
+      html += `
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          padding:10px;
+          margin-bottom:6px;
+          background:rgba(255,255,255,0.05);
+          border-radius:8px;
+        ">
+
+          <span>${topic.topic_key}</span>
+
+          <button
+            onclick="toggleFree(${topic.id}, ${topic.is_free})"
+            style="
+              width:120px;
+              margin:0;
+            "
+          >
+            ${topic.is_free ? "FREE" : "PAID"}
+          </button>
+
+        </div>
+      `;
+
+    });
+
+    document.getElementById("topics").innerHTML = html;
+
+  }catch(e){
+
+    console.log(e);
+
+  }
+
+}
+
+loadTopics();
+
+/* ============================
+   SOCKET LEADERBOARD
+============================ */
+
+const socket = io(BASE);
+
+socket.on("leaderboard", (data) => {
+
+  let html = `
+    <table>
+      <tr>
+        <th>Rank</th>
+        <th>Name</th>
+        <th>Score</th>
+      </tr>
+  `;
+
+  data.forEach((u, i) => {
+
+    html += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${u.name}</td>
+        <td>${u.score}</td>
+      </tr>
+    `;
+
+  });
+
+  html += `</table>`;
+
+  document.getElementById("leaderboard").innerHTML = html;
+
+});
+
+
+
+
+async function toggleFree(topicId,currentValue){
+
+  try{
+
+    await fetch(
+      BASE + "/admin/topic-access",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          topicId,
+          isFree: !currentValue
+        })
+      }
+    );
+
+    loadTopics();
+
+  }catch(e){
+
+    console.log(e);
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>
