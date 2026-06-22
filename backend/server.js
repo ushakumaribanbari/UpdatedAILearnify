@@ -1,5 +1,4 @@
 require("dotenv").config();
-const axios = require("axios");
     const nodemailer = require("nodemailer");
     const express = require("express");
     const cors = require("cors");
@@ -8,18 +7,19 @@ const bcrypt = require('bcryptjs');
     const http = require("http");
     const socketIo = require("socket.io");
     const app = express();
+    const axios = require("axios");
     app.use(cors());
     app.use(express.json());
 const pool = require("./db");
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS,
-  },
-});
+// const transporter = nodemailer.createTransport({
+//   host: "smtp-relay.brevo.com",
+//   port: 587,
+//   secure: false,
+//   auth: {
+//     user: process.env.BREVO_USER,
+//     pass: process.env.BREVO_PASS,
+//   },
+// });
 
 
 // const transporter = nodemailer.createTransport({
@@ -34,13 +34,13 @@ const transporter = nodemailer.createTransport({
 // });
 
 
-transporter.verify(function (error, success) {
-  if (error) {
-    console.error("SMTP ERROR:", error);
-  } else {
-    console.log("SMTP READY");
-  }
-});
+// transporter.verify((err, success) => {
+//   if (err) {
+//     console.log("SMTP ERROR:", err);
+//   } else {
+//     console.log("SMTP READY");
+//   }
+// });
 
 
 
@@ -86,39 +86,40 @@ app.post("/auth/forgot-password", async (req, res) => {
 
     // Send Email
 try {
- await axios.post(
-  "https://api.brevo.com/v3/smtp/email",
-  {
-    sender: {
-      name: "AI Learnify",
-      email: "ushakumaribanbari@gmail.com",
-    },
-    to: [
-      {
-        email: email,
-      },
-    ],
-    subject: "Password Reset OTP",
-    htmlContent: `
-      <h2>AI Learnify</h2>
-      <p>Your OTP is:</p>
-      <h1>${otp}</h1>
-      <p>This OTP will expire in 5 minutes.</p>
-    `,
-  },
-  {
-    headers: {
-      "api-key": process.env.BREVO_API_KEY,
-      "Content-Type": "application/json",
-    },
-  }
-);
 
-  console.log("MAIL SENT:", info);
+  const response = await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+      sender: {
+        name: "AI Learnify",
+        email: "ushakumaribanbari@gmail.com",
+      },
+      to: [
+        {
+          email: email,
+        },
+      ],
+      subject: "Password Reset OTP",
+      htmlContent: `
+        <h2>AI Learnify</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>This OTP will expire in 5 minutes.</p>
+      `,
+    },
+    {
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  console.log("BREVO RESPONSE:", response.data);
 
 } catch (mailError) {
 
-  console.error("MAIL ERROR:", mailError);
+  console.error("BREVO ERROR:", mailError.response?.data || mailError.message);
 
   return res.status(500).json({
     success: false,
