@@ -1,4 +1,5 @@
-    require("dotenv").config();
+require("dotenv").config();
+const axios = require("axios");
     const nodemailer = require("nodemailer");
     const express = require("express");
     const cors = require("cors");
@@ -83,19 +84,33 @@ app.post("/auth/forgot-password", async (req, res) => {
       [email, otp, expiresAt]
     );
 
-    // Send Email
-try {
-  const info = await transporter.sendMail({
-from: '"AI Learnify" <ushakumaribanbari@gmail.com>',
-    to: email,
+await axios.post(
+  "https://api.brevo.com/v3/smtp/email",
+  {
+    sender: {
+      name: "AI Learnify",
+      email: "ushakumaribanbari@gmail.com",
+    },
+    to: [
+      {
+        email: email,
+      },
+    ],
     subject: "Password Reset OTP",
-    html: `
+    htmlContent: `
       <h2>AI Learnify</h2>
       <p>Your OTP is:</p>
       <h1>${otp}</h1>
       <p>This OTP will expire in 5 minutes.</p>
     `,
-  });
+  },
+  {
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+    },
+  }
+);
 
   console.log("MAIL SENT:", info);
 
