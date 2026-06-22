@@ -84,7 +84,9 @@ app.post("/auth/forgot-password", async (req, res) => {
       [email, otp, expiresAt]
     );
 
-await axios.post(
+    // Send Email
+try {
+ await axios.post(
   "https://api.brevo.com/v3/smtp/email",
   {
     sender: {
